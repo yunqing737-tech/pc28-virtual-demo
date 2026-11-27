@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PC28 虚拟分演示｜免费体验</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f4f5f7; color: #222; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 12px 12px 40px; }
+  h1 { font-size: 20px; margin: 6px 0 2px; }
+  .sub { color: #666; font-size: 13px; margin: 0 0 12px; }
+  .badge { display: inline-block; background: #16a34a; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; vertical-align: 2px; }
+  .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .card h2 { font-size: 15px; margin: 0 0 10px; }
+  .big { font-size: 26px; font-weight: 700; }
+  .muted { color: #666; font-size: 13px; }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+  .row:last-child { border-bottom: 0; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 8px; background: #eef2ff; font-size: 13px; margin-right: 4px; }
+  .pill.hot { background: #fef3c7; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bet { border: 1px solid #ddd; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; background: #fff; }
+  .bet.sel { border-color: #2563eb; background: #eff6ff; }
+  .bet .o { color: #666; font-size: 12px; }
+  .stake button, .act button { padding: 8px 14px; margin: 4px 4px 0 0; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 14px; }
+  .stake button.sel { border-color: #2563eb; background: #eff6ff; }
+  .act button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 6px 4px; border-bottom: 1px solid #f0f0f0; text-align: center; }
+  th { color: #666; font-weight: 500; }
+  .win { color: #16a34a; font-weight: 700; }
+  .lose { color: #dc2626; }
+  .note { font-size: 12px; color: #888; line-height: 1.6; }
+  #err { color: #dc2626; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PC28 虚拟分演示 <span class="badge">免费体验</span></h1>
+  <p class="sub">纯娱乐：虚拟分下注，不接真钱，不结算，不收款。数据每 5 分钟自动同步爱骏公开开奖。</p>
+  <div id="err"></div>
+
+  <div class="card">
+    <h2>最新开奖</h2>
+    <div id="latest">加载中…</div>
+    <div class="muted" id="countdown" style="margin-top:6px"></div>
+    <div class="muted" id="updated"></div>
+  </div>
+
+  <div class="card">
+    <h2>下期预测 <span class="muted" id="nextPeriod"></span></h2>
+    <div id="pred">加载中…</div>
+    <p class="note" id="modelNote"></p>
+  </div>
+
+  <div class="card">
+    <h2>虚拟分下注</h2>
+    <div class="row"><span>余额（虚拟分）</span><b id="balance">10000</b></div>
+    <div class="row"><span>本期下注期号</span><b id="betPeriod">—</b></div>
+    <div class="grid" id="betGrid" style="margin-top:10px"></div>
+    <div class="stake" style="margin-top:10px">
+      注额：
+      <button data-stake="10" class="sel">10</button>
+      <button data-stake="50">50</button>
+      <button data-stake="100">100</button>
+      <button data-stake="500">500</button>
+    </div>
+    <div class="act" style="margin-top:10px">
+      <button class="primary" id="placeBtn">下注</button>
+      <button id="resetBtn">重置 10000 分</button>
+    </div>
+    <div id="betMsg" class="muted" style="margin-top:8px"></div>
+    <h2 style="margin-top:14px">未结算</h2>
+    <div id="pending" class="muted">无</div>
+    <h2 style="margin-top:14px">最近结算</h2>
+    <div id="settled" class="muted">无</div>
+  </div>
+
+  <div class="card">
+    <h2>区间战绩</h2>
+    <div id="stats">加载中…</div>
+  </div>
+
+  <div class="card">
+    <h2>最近开奖</h2>
+    <table><thead><tr><th>期号</th><th>开奖</th><th>和值</th><th>大小</th><th>单双</th></tr></thead>
+    <tbody id="hist"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>逐期记录（近 20 期）</h2>
+    <table><thead><tr><th>期号</th><th>区间</th><th>实际</th><th>结果</th></tr></thead>
+    <tbody id="records"></tbody></table>
+    <p class="note">口径：区间为开奖前写下的预测，命中 = 实际和值落在区间内；缺档的期号不计入。</p>
+  </div>
+
+  <p class="note">演示赔率（虚拟分）：大/小/单/双 2.0；大单 3.85，大双 4.35，小单 4.35，小双 3.85；极大/极小 16；豹子 90。预测为简化模型（理论 50% + 近 100 期 25% + 近 300 期 25%），不承诺命中率，不声称有预测优势。数据来源：爱骏公开开奖页。</p>
+</div>
+
+<script>
+// Worker 地址：部署完把 https://pc28-worker.<你的子域名>.workers.dev 填到这里。
+// 还含 REPLACE 时回落到本地 data/*.json（GitHub Actions 版数据）。
+const API_BASE = 'https://pc28-worker.yunqing737.workers.dev';
+const ODDS = {'大':2,'小':2,'单':2,'双':2,'大单':3.85,'大双':4.35,'小单':4.35,'小双':3.85,'极大':16,'极小':16,'豹子':90};
+const TYPES = Object.keys(ODDS);
+let PRED = null, DRAWS = [], DRAWS_MAP = {};
+let balance = +(localStorage.getItem('pc28gh_balance') || 10000);
+let pending = JSON.parse(localStorage.getItem('pc28gh_bets') || '[]');
+let settled = JSON.parse(localStorage.getItem('pc28gh_settled') || '[]');
+let selType = '大', selStake = 10;
+
+const $ = (id) => document.getElementById(id);
+function save() {
+  localStorage.setItem('pc28gh_balance', balance);
+  localStorage.setItem('pc28gh_bets', JSON.stringify(pending));
+  localStorage.setItem('pc28gh_settled', JSON.stringify(settled.slice(-20)));
+}
+function comboOf(sum) {
+  const big = sum >= 14, odd = sum % 2 === 1;
+  return (big ? '大' : '小') + (odd ? '单' : '双');
+}
+function wins(type, d) {
+  const s = d.sum;
+  if (type === '大') return s >= 14;
+  if (type === '小') return s <= 13;
+  if (type === '单') return s % 2 === 1;
+  if (type === '双') return s % 2 === 0;
+  if (type === '极大') return s >= 22;
+  if (type === '极小') return s <= 5;
+  if (type === '豹子') return d.nums[0] === d.nums[1] && d.nums[1] === d.nums[2];
+  return comboOf(s) === type;
+}
+async function load() {
+  const t = 't=' + Date.now();
+  try {
+    let p, d, r;
+    if (!API_BASE.includes('REPLACE')) {
+      // 按需同步一次（Worker 里 50 秒节流，失败也不影响读数）
+      fetch(API_BASE + '/api/sync?' + t).catch(() => {});
+      const s = await fetch(API_BASE + '/api/state?' + t).then((x) => {
+        if (!x.ok) throw new Error('state ' + x.status);
+        return x.json();
+      });
+      p = { updatedAt: s.updatedAt, latestPeriod: s.latestPeriod, latestNums: s.latestNums, latestSum: s.latestSum, nextPeriod: s.nextPeriod, nextDrawAt: s.nextDrawAt, ...s.prediction };
+      d = { draws: s.draws };
+      r = { records: s.records };
+    } else {
+      [p, d, r] = await Promise.all([
+        fetch('data/prediction.json?' + t).then((x) => x.json()),
+        fetch('data/draws.json?' + t).then((x) => x.json()),
+        fetch('data/records.json?' + t).then((x) => x.json()),
+      ]);
+    }
+    PRED = p; DRAWS = d.draws; DRAWS_MAP = Object.fromEntries(DRAWS.map((x) => [x.period, x]));
+    render(p, d, r);
+    settle();
+  } catch (e) {
+    $('err').textContent = '数据加载失败，请稍后刷新重试。';
+  }
+}
+function render(p, d, r) {
+  const last = DRAWS[DRAWS.length - 1];
+  $('latest').innerHTML =
+    '<div class="big">' + last.nums.join(' + ') + ' = ' + last.sum + '</div>' +
+    '<div style="margin-top:6px"><span class="pill">' + last.period + ' 期</span>' +
+    '<span class="pill">' + (last.sum >= 14 ? '大' : '小') + '</span>' +
+    '<span class="pill">' + (last.sum % 2 ? '单' : '双') + '</span>' +
+    '<span class="pill hot">' + comboOf(last.sum) + '</span>' +
+    (last.time ? '<span class="pill">' + last.time + '</span>' : '') + '</div>';
+  $('updated').textContent = '数据更新于 ' + new Date(p.updatedAt).toLocaleString('zh-CN', { hour12: false }) + '（每 5 分钟同步）';
+  $('nextPeriod').textContent = '· ' + p.nextPeriod + ' 期';
+  const iv = p.interval;
+  $('pred').innerHTML =
+    '<div class="row"><span>60% 和值区间</span><b>' + iv.lo + ' – ' + iv.hi + '</b></div>' +
+    '<div class="row"><span>区间概率质量</span><b>' + (iv.mass * 100).toFixed(1) + '%</b></div>' +
+    '<div class="row"><span>和值前三</span><b>' + p.topSums.map((x) => x.s + '（' + (x.p * 100).toFixed(1) + '%）').join(' / ') + '</b></div>' +
+    '<div class="row"><span>大 / 小</span><b>' + (p.pBig * 100).toFixed(1) + '% / ' + ((1 - p.pBig) * 100).toFixed(1) + '%</b></div>' +
+    '<div class="row"><span>单 / 双</span><b>' + (p.pOdd * 100).toFixed(1) + '% / ' + ((1 - p.pOdd) * 100).toFixed(1) + '%</b></div>' +
+    '<div class="row"><span>组合</span><b>' + Object.entries(p.combo).map(([k, v]) => k + ' ' + (v * 100).toFixed(1) + '%').join(' · ') + '</b></div>';
+  $('modelNote').textContent = '模型：' + p.model;
+  const st = p.stats;
+  $('stats').innerHTML =
+    '<div class="row"><span>已评分</span><b>' + st.scored + ' 期</b></div>' +
+    '<div class="row"><span>区间命中</span><b>' + st.intervalHits + ' 期（' + (st.hitRate * 100).toFixed(1) + '%）</b></div>' +
+    '<div class="row"><span>最长连续未命中</span><b>' + (st.longestLen ? st.longestLen + ' 期（' + st.longestFrom + '–' + st.longestTo + '）' : '暂无') + '</b></div>' +
+    '<div class="row"><span>当前连续未命中</span><b>' + st.currentLen + ' 期</b></div>';
+  $('hist').innerHTML = DRAWS.slice(-30).reverse().map((x) =>
+    '<tr><td>' + x.period + '</td><td>' + x.nums.join('+') + '</td><td>' + x.sum + '</td><td>' + (x.sum >= 14 ? '大' : '小') + '</td><td>' + (x.sum % 2 ? '单' : '双') + '</td></tr>'
+  ).join('');
+  const recs = (r.records || []).filter((x) => x.actual !== null).slice(-20).reverse();
+  $('records').innerHTML = recs.length ? recs.map((x) =>
+    '<tr><td>' + x.period + '</td><td>' + x.interval[0] + '–' + x.interval[1] + '</td><td>' + x.actual + '</td><td class="' + (x.hit ? 'win' : 'lose') + '">' + (x.hit ? '命中' : '未中') + '</td></tr>'
+  ).join('') : '<tr><td colspan="4">记录积累中（开奖后自动结算）</td></tr>';
+  $('betPeriod').textContent = p.nextPeriod + ' 期';
+  tick();
+}
+function tick() {
+  if (!PRED || !PRED.nextDrawAt) return;
+  const diff = Math.max(0, Math.floor((new Date(PRED.nextDrawAt) - Date.now()) / 1000));
+  $('countdown').textContent = diff > 0
+    ? '下期 ' + PRED.nextPeriod + ' 期约 ' + Math.floor(diff / 60) + ' 分 ' + (diff % 60) + ' 秒后开奖'
+    : '等待下期开奖同步…';
+}
+setInterval(tick, 1000);
+function settle() {
+  let changed = false;
+  pending = pending.filter((b) => {
+    const d = DRAWS_MAP[b.period];
+    if (!d) return true;
+    const win = wins(b.type, d);
+    const back = win ? Math.round(b.stake * ODDS[b.type]) : 0;
+    balance += back;
+    settled.push({ ...b, sum: d.sum, win, back });
+    changed = true;
+    return false;
+  });
+  if (changed) { save(); renderDesk(); }
+}
+function renderDesk() {
+  $('balance').textContent = balance;
+  $('pending').innerHTML = pending.length ? pending.map((b) =>
+    '<div class="row"><span>' + b.period + ' 期 · ' + b.type + '</span><b>' + b.stake + ' 分</b></div>'
+  ).join('') : '无';
+  $('settled').innerHTML = settled.length ? settled.slice(-8).reverse().map((b) =>
+    '<div class="row"><span>' + b.period + ' 期 · ' + b.type + '（和值 ' + b.sum + '）</span><b class="' + (b.win ? 'win' : 'lose') + '">' + (b.win ? '+' + b.back : '−' + b.stake) + '</b></div>'
+  ).join('') : '无';
+}
+$('betGrid').innerHTML = TYPES.map((t) =>
+  '<div class="bet' + (t === selType ? ' sel' : '') + '" data-type="' + t + '">' + t + '<div class="o">' + ODDS[t] + ' 倍</div></div>'
+).join('');
+$('betGrid').addEventListener('click', (e) => {
+  const el = e.target.closest('.bet');
+  if (!el) return;
+  selType = el.dataset.type;
+  document.querySelectorAll('.bet').forEach((x) => x.classList.toggle('sel', x.dataset.type === selType));
+});
+document.querySelectorAll('.stake button').forEach((b) => b.addEventListener('click', () => {
+  selStake = +b.dataset.stake;
+  document.querySelectorAll('.stake button').forEach((x) => x.classList.toggle('sel', x === b));
+}));
+$('placeBtn').addEventListener('click', () => {
+  if (!PRED) { $('betMsg').textContent = '数据加载中，稍后再试。'; return; }
+  if (balance < selStake) { $('betMsg').textContent = '余额不足，请先重置或等结算。'; return; }
+  balance -= selStake;
+  pending.push({ period: PRED.nextPeriod, type: selType, stake: selStake, placedAt: Date.now() });
+  save(); renderDesk();
+  $('betMsg').textContent = '已下注：' + PRED.nextPeriod + ' 期 ' + selType + ' ' + selStake + ' 分，待开奖结算。';
+});
+$('resetBtn').addEventListener('click', () => {
+  balance = 10000; pending = []; settled = [];
+  save(); renderDesk();
+  $('betMsg').textContent = '已重置：余额 10000 分，未结算注单已清空。';
+});
+renderDesk();
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>
