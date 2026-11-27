@@ -118,7 +118,7 @@
     <p class="note">口径：区间为开奖前写下的预测，命中 = 实际和值落在区间内；缺档的期号不计入。</p>
   </div>
 
-  <p class="note">演示赔率（虚拟分）：大/小/单/双 2.0；大单 3.85，大双 4.35，小单 4.35，小双 3.85；极大/极小 16；豹子 90。预测为简化模型（理论 50% + 近 100 期 25% + 近 300 期 25%），不承诺命中率，不声称有预测优势。数据来源：爱骏公开开奖页。</p>
+  <p class="note">演示赔率（虚拟分）：大/小/单/双 2.0；大单 3.85，大双 4.35，小单 4.35，小双 3.85；极大/极小 16；豹子 90。答案与 V3.0 同源时页面会注明；未同步到时暂显示简化模型（理论 50% + 近 100 期 25% + 近 300 期 25%）。不承诺命中率，不声称有预测优势。数据来源：爱骏公开开奖页。</p>
 </div>
 
 <script>
@@ -128,6 +128,7 @@ const API_BASE = 'https://pc28-worker.yunqing737.workers.dev';
 const ODDS = {'大':2,'小':2,'单':2,'双':2,'大单':3.85,'大双':4.35,'小单':4.35,'小双':3.85,'极大':16,'极小':16,'豹子':90};
 const TYPES = Object.keys(ODDS);
 let PRED = null, DRAWS = [], DRAWS_MAP = {};
+let V3ANS = null; // V3.0 推送的正式答案（期号对得上才用，对不上回落简化版）
 let balance = +(localStorage.getItem('pc28gh_balance') || 10000);
 let pending = JSON.parse(localStorage.getItem('pc28gh_bets') || '[]');
 let settled = JSON.parse(localStorage.getItem('pc28gh_settled') || '[]');
@@ -166,9 +167,11 @@ async function load() {
         return x.json();
       });
       p = { updatedAt: s.updatedAt, latestPeriod: s.latestPeriod, latestNums: s.latestNums, latestSum: s.latestSum, nextPeriod: s.nextPeriod, nextDrawAt: s.nextDrawAt, ...s.prediction };
+      V3ANS = s.v3answer || null;
       d = { draws: s.draws };
       r = { records: s.records };
     } else {
+      V3ANS = null;
       [p, d, r] = await Promise.all([
         fetch('data/prediction.json?' + t).then((x) => x.json()),
         fetch('data/draws.json?' + t).then((x) => x.json()),
@@ -194,32 +197,52 @@ function render(p, d, r) {
   $('updated').textContent = '数据更新于 ' + new Date(p.updatedAt).toLocaleString('zh-CN', { hour12: false }) + '（每 5 分钟同步）';
   $('nextPeriod').textContent = '· ' + p.nextPeriod + ' 期';
   const iv = p.interval;
-  // 五项答案：读同一份分布直接取结果，概率只作小字参考（与 V4.0 答案页同口径）。
-  // 平局为固定规则，非信号：大小 50/50 取大，单双 50/50 取单，组合按大单→大双→小单→小双取先，和值取最大格（并列取小）。
-  const bigPick = p.pBig >= 0.5 ? '大' : '小';
-  const oddPick = p.pOdd >= 0.5 ? '单' : '双';
+  // 答案来源：有 V3.0 推送且期号等于当前下期时，直接用 V3.0 正式答案；
+  // 否则用本页简化模型（理论 50% + 近 100 期 25% + 近 300 期 25%）回落显示。
+  const v3a = (V3ANS && V3ANS.period === p.nextPeriod) ? V3ANS.answer : null;
   const comboOrder = ['大单', '大双', '小单', '小双'];
   let comboPick = comboOrder[0], comboP = -1;
   comboOrder.forEach((k) => { if (p.combo[k] > comboP) { comboP = p.combo[k]; comboPick = k; } });
-  const sumPick = p.topSums[0];
+  const eff = v3a ? {
+    bigPick: v3a.bigPick, bigProb: v3a.bigProb,
+    oddPick: v3a.oddPick, oddProb: v3a.oddProb,
+    comboPick: v3a.comboPick, comboProb: v3a.comboProb,
+    sumPick: v3a.sumPick, sumProb: v3a.sumProb,
+    lo: v3a.lo, hi: v3a.hi, mass: v3a.mass,
+    pBig: v3a.pBig, pOdd: v3a.pOdd, topSums: v3a.topSums, combo: v3a.combo,
+    source: 'v3',
+  } : {
+    bigPick: p.pBig >= 0.5 ? '大' : '小', bigProb: p.pBig >= 0.5 ? p.pBig : 1 - p.pBig,
+    oddPick: p.pOdd >= 0.5 ? '单' : '双', oddProb: p.pOdd >= 0.5 ? p.pOdd : 1 - p.pOdd,
+    comboPick, comboProb: comboP,
+    sumPick: p.topSums[0].s, sumProb: p.topSums[0].p,
+    lo: iv.lo, hi: iv.hi, mass: iv.mass,
+    pBig: p.pBig, pOdd: p.pOdd, topSums: p.topSums, combo: p.combo,
+    source: 'simple',
+  };
+  const takeNote = eff.source === 'v3'
+    ? '取法：V3.0 正式答案（每期八分量分布 + 浮动取格），与 V3.0 页完全一致。'
+    : '取法：五项答案读同一份每期按最新开奖重算的分布；平局为固定规则（大小取大、单双取单、组合按大单→大双→小单→小双取先），不是更高概率的信号。';
   $('pred').innerHTML =
     '<div class="ansGrid">' +
-    '<div class="ansBox"><div class="lab">大小答案</div><div class="pick">' + bigPick + '</div><div class="prob">模型概率 ' + (p.pBig >= 0.5 ? (p.pBig * 100).toFixed(1) : ((1 - p.pBig) * 100).toFixed(1)) + '%</div></div>' +
-    '<div class="ansBox"><div class="lab">单双答案</div><div class="pick">' + oddPick + '</div><div class="prob">模型概率 ' + (p.pOdd >= 0.5 ? (p.pOdd * 100).toFixed(1) : ((1 - p.pOdd) * 100).toFixed(1)) + '%</div></div>' +
-    '<div class="ansBox"><div class="lab">组合答案</div><div class="pick">' + comboPick + '</div><div class="prob">模型概率 ' + (comboP * 100).toFixed(1) + '%</div></div>' +
-    '<div class="ansBox"><div class="lab">和值答案</div><div class="pick">' + sumPick.s + '</div><div class="prob">模型概率 ' + (sumPick.p * 100).toFixed(1) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">大小答案</div><div class="pick">' + eff.bigPick + '</div><div class="prob">模型概率 ' + (eff.bigProb * 100).toFixed(1) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">单双答案</div><div class="pick">' + eff.oddPick + '</div><div class="prob">模型概率 ' + (eff.oddProb * 100).toFixed(1) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">组合答案</div><div class="pick">' + eff.comboPick + '</div><div class="prob">模型概率 ' + (eff.comboProb * 100).toFixed(1) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">和值答案</div><div class="pick">' + eff.sumPick + '</div><div class="prob">模型概率 ' + (eff.sumProb * 100).toFixed(1) + '%</div></div>' +
     '</div>' +
-    '<div class="ansIv">60% 和值区间 <b>' + iv.lo + ' – ' + iv.hi + '</b></div>' +
-    '<button class="ansBtn" id="ansPickBtn">按组合答案选玩法（' + comboPick + '）</button>' +
-    '<p class="note">取法：五项答案读同一份每期按最新开奖重算的分布；平局为固定规则（大小取大、单双取单、组合按大单→大双→小单→小双取先），不是更高概率的信号。</p>' +
-    '<div class="row"><span>60% 和值区间</span><b>' + iv.lo + ' – ' + iv.hi + '</b></div>' +
-    '<div class="row"><span>区间概率质量</span><b>' + (iv.mass * 100).toFixed(1) + '%</b></div>' +
-    '<div class="row"><span>和值前三</span><b>' + p.topSums.map((x) => x.s + '（' + (x.p * 100).toFixed(1) + '%）').join(' / ') + '</b></div>' +
-    '<div class="row"><span>大 / 小</span><b>' + (p.pBig * 100).toFixed(1) + '% / ' + ((1 - p.pBig) * 100).toFixed(1) + '%</b></div>' +
-    '<div class="row"><span>单 / 双</span><b>' + (p.pOdd * 100).toFixed(1) + '% / ' + ((1 - p.pOdd) * 100).toFixed(1) + '%</b></div>' +
-    '<div class="row"><span>组合</span><b>' + Object.entries(p.combo).map(([k, v]) => k + ' ' + (v * 100).toFixed(1) + '%').join(' · ') + '</b></div>';
-  $('ansPickBtn').addEventListener('click', () => selectType(comboPick));
-  $('modelNote').textContent = '模型：' + p.model;
+    '<div class="ansIv">60% 和值区间 <b>' + eff.lo + ' – ' + eff.hi + '</b></div>' +
+    '<button class="ansBtn" id="ansPickBtn">按组合答案选玩法（' + eff.comboPick + '）</button>' +
+    '<p class="note">' + takeNote + '</p>' +
+    '<div class="row"><span>60% 和值区间</span><b>' + eff.lo + ' – ' + eff.hi + '</b></div>' +
+    '<div class="row"><span>区间概率质量</span><b>' + (eff.mass * 100).toFixed(1) + '%</b></div>' +
+    '<div class="row"><span>和值前三</span><b>' + eff.topSums.map((x) => x.s + '（' + (x.p * 100).toFixed(1) + '%）').join(' / ') + '</b></div>' +
+    '<div class="row"><span>大 / 小</span><b>' + (eff.pBig * 100).toFixed(1) + '% / ' + ((1 - eff.pBig) * 100).toFixed(1) + '%</b></div>' +
+    '<div class="row"><span>单 / 双</span><b>' + (eff.pOdd * 100).toFixed(1) + '% / ' + ((1 - eff.pOdd) * 100).toFixed(1) + '%</b></div>' +
+    '<div class="row"><span>组合</span><b>' + Object.entries(eff.combo).map(([k, v]) => k + ' ' + (v * 100).toFixed(1) + '%').join(' · ') + '</b></div>';
+  $('ansPickBtn').addEventListener('click', () => selectType(eff.comboPick));
+  $('modelNote').textContent = eff.source === 'v3'
+    ? '答案来源：V3.0 同源（八分量收缩融合 · 浮动取格），与 V3.0 页完全一致。'
+    : '模型：' + p.model;
   const st = p.stats;
   $('stats').innerHTML =
     '<div class="row"><span>已评分</span><b>' + st.scored + ' 期</b></div>' +
