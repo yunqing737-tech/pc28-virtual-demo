@@ -32,6 +32,13 @@
   .win { color: #16a34a; font-weight: 700; }
   .lose { color: #dc2626; }
   .note { font-size: 12px; color: #888; line-height: 1.6; }
+  .ansGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .ansBox { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; text-align: center; background: #f8fafc; }
+  .ansBox .lab { color: #666; font-size: 13px; }
+  .ansBox .pick { font-size: 30px; font-weight: 700; line-height: 1.3; }
+  .ansBox .prob { color: #666; font-size: 12px; }
+  .ansIv { text-align: center; font-size: 15px; margin: 2px 0 10px; }
+  .ansBtn { display: block; width: 100%; padding: 10px; border: 0; border-radius: 10px; background: #f59e0b; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
   #err { color: #dc2626; font-size: 13px; }
 </style>
 </head>
@@ -171,13 +178,31 @@ function render(p, d, r) {
   $('updated').textContent = '数据更新于 ' + new Date(p.updatedAt).toLocaleString('zh-CN', { hour12: false }) + '（每 5 分钟同步）';
   $('nextPeriod').textContent = '· ' + p.nextPeriod + ' 期';
   const iv = p.interval;
+  // 五项答案：读同一份分布直接取结果，概率只作小字参考（与 V4.0 答案页同口径）。
+  // 平局为固定规则，非信号：大小 50/50 取大，单双 50/50 取单，组合按大单→大双→小单→小双取先，和值取最大格（并列取小）。
+  const bigPick = p.pBig >= 0.5 ? '大' : '小';
+  const oddPick = p.pOdd >= 0.5 ? '单' : '双';
+  const comboOrder = ['大单', '大双', '小单', '小双'];
+  let comboPick = comboOrder[0], comboP = -1;
+  comboOrder.forEach((k) => { if (p.combo[k] > comboP) { comboP = p.combo[k]; comboPick = k; } });
+  const sumPick = p.topSums[0];
   $('pred').innerHTML =
+    '<div class="ansGrid">' +
+    '<div class="ansBox"><div class="lab">大小答案</div><div class="pick">' + bigPick + '</div><div class="prob">模型概率 ' + (p.pBig >= 0.5 ? (p.pBig * 100).toFixed(1) : ((1 - p.pBig) * 100).toFixed(1)) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">单双答案</div><div class="pick">' + oddPick + '</div><div class="prob">模型概率 ' + (p.pOdd >= 0.5 ? (p.pOdd * 100).toFixed(1) : ((1 - p.pOdd) * 100).toFixed(1)) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">组合答案</div><div class="pick">' + comboPick + '</div><div class="prob">模型概率 ' + (comboP * 100).toFixed(1) + '%</div></div>' +
+    '<div class="ansBox"><div class="lab">和值答案</div><div class="pick">' + sumPick.s + '</div><div class="prob">模型概率 ' + (sumPick.p * 100).toFixed(1) + '%</div></div>' +
+    '</div>' +
+    '<div class="ansIv">60% 和值区间 <b>' + iv.lo + ' – ' + iv.hi + '</b></div>' +
+    '<button class="ansBtn" id="ansPickBtn">按组合答案选玩法（' + comboPick + '）</button>' +
+    '<p class="note">取法：五项答案读同一份每期按最新开奖重算的分布；平局为固定规则（大小取大、单双取单、组合按大单→大双→小单→小双取先），不是更高概率的信号。</p>' +
     '<div class="row"><span>60% 和值区间</span><b>' + iv.lo + ' – ' + iv.hi + '</b></div>' +
     '<div class="row"><span>区间概率质量</span><b>' + (iv.mass * 100).toFixed(1) + '%</b></div>' +
     '<div class="row"><span>和值前三</span><b>' + p.topSums.map((x) => x.s + '（' + (x.p * 100).toFixed(1) + '%）').join(' / ') + '</b></div>' +
     '<div class="row"><span>大 / 小</span><b>' + (p.pBig * 100).toFixed(1) + '% / ' + ((1 - p.pBig) * 100).toFixed(1) + '%</b></div>' +
     '<div class="row"><span>单 / 双</span><b>' + (p.pOdd * 100).toFixed(1) + '% / ' + ((1 - p.pOdd) * 100).toFixed(1) + '%</b></div>' +
     '<div class="row"><span>组合</span><b>' + Object.entries(p.combo).map(([k, v]) => k + ' ' + (v * 100).toFixed(1) + '%').join(' · ') + '</b></div>';
+  $('ansPickBtn').addEventListener('click', () => selectType(comboPick));
   $('modelNote').textContent = '模型：' + p.model;
   const st = p.stats;
   $('stats').innerHTML =
@@ -235,6 +260,12 @@ $('betGrid').addEventListener('click', (e) => {
   selType = el.dataset.type;
   document.querySelectorAll('.bet').forEach((x) => x.classList.toggle('sel', x.dataset.type === selType));
 });
+function selectType(t) {
+  selType = t;
+  document.querySelectorAll('.bet').forEach((x) => x.classList.toggle('sel', x.dataset.type === t));
+  $('betMsg').textContent = '已选玩法：' + t + '，选好注额点下注。';
+  document.querySelector('#betGrid').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 document.querySelectorAll('.stake button').forEach((b) => b.addEventListener('click', () => {
   selStake = +b.dataset.stake;
   document.querySelectorAll('.stake button').forEach((x) => x.classList.toggle('sel', x === b));
