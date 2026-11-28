@@ -6,44 +6,50 @@
 <title>PC28 虚拟分演示｜免费体验</title>
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f4f5f7; color: #222; }
-  .wrap { max-width: 640px; margin: 0 auto; padding: 12px 12px 40px; }
-  h1 { font-size: 20px; margin: 6px 0 2px; }
-  .sub { color: #666; font-size: 13px; margin: 0 0 12px; }
-  .badge { display: inline-block; background: #16a34a; color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; vertical-align: 2px; }
-  .card { background: #fff; border-radius: 12px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-  .card h2 { font-size: 15px; margin: 0 0 10px; }
-  .big { font-size: 26px; font-weight: 700; }
-  .muted { color: #666; font-size: 13px; }
-  .row { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: radial-gradient(700px 240px at 50% -60px, rgba(245,158,11,.14), transparent 70%), #0b0f19; color: #e8ecf3; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 14px 14px 48px; }
+  h1 { font-size: 22px; margin: 8px 0 2px; font-weight: 800; letter-spacing: .5px; }
+  .sub { color: #94a3b8; font-size: 13px; margin: 0 0 14px; line-height: 1.5; }
+  .badge { display: inline-block; background: linear-gradient(135deg, #16a34a, #22c55e); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 10px; vertical-align: 2px; }
+  .card { background: linear-gradient(180deg, #171d2b, #131826); border: 1px solid rgba(255,255,255,.07); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: linear-gradient(180deg, #f59e0b, #f97316); flex: none; }
+  .big { font-size: 30px; font-weight: 800; color: #fbbf24; letter-spacing: 1px; }
+  .muted { color: #94a3b8; font-size: 13px; }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.07); font-size: 14px; }
   .row:last-child { border-bottom: 0; }
-  .pill { display: inline-block; padding: 2px 8px; border-radius: 8px; background: #eef2ff; font-size: 13px; margin-right: 4px; }
-  .pill.hot { background: #fef3c7; }
+  .row b { color: #f1f5f9; }
+  .pill { display: inline-block; padding: 3px 9px; border-radius: 8px; background: rgba(96,165,250,.16); color: #93c5fd; font-size: 13px; margin-right: 4px; }
+  .pill.hot { background: rgba(245,158,11,.16); color: #fbbf24; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .bet { border: 1px solid #ddd; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; background: #fff; }
-  .bet.sel { border-color: #2563eb; background: #eff6ff; }
-  .bet .o { color: #666; font-size: 12px; }
-  .stake button, .act button { padding: 8px 14px; margin: 4px 4px 0 0; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 14px; }
-  .stake button.sel { border-color: #2563eb; background: #eff6ff; }
-  .act button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+  .bet { border: 1px solid #2a3348; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; background: #1a2133; color: #e8ecf3; font-size: 15px; font-weight: 600; transition: border-color .15s, background .15s; }
+  .bet.sel { border-color: #f59e0b; background: rgba(245,158,11,.14); color: #fbbf24; box-shadow: 0 0 0 1px #f59e0b inset; }
+  .bet .o { color: #94a3b8; font-size: 12px; font-weight: 400; margin-top: 2px; }
+  .stake button, .act button { padding: 9px 15px; margin: 4px 4px 0 0; border-radius: 9px; border: 1px solid #2a3348; background: #1a2133; color: #e8ecf3; cursor: pointer; font-size: 14px; }
+  .stake button.sel { border-color: #f59e0b; background: rgba(245,158,11,.14); color: #fbbf24; }
+  .act button.primary { background: linear-gradient(135deg, #f59e0b, #f97316); color: #231a06; border-color: transparent; font-weight: 700; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th, td { padding: 6px 4px; border-bottom: 1px solid #f0f0f0; text-align: center; }
-  th { color: #666; font-weight: 500; }
-  .win { color: #16a34a; font-weight: 700; }
-  .lose { color: #dc2626; }
-  .note { font-size: 12px; color: #888; line-height: 1.6; }
-  .ansGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-  .ansBox { border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; text-align: center; background: #f8fafc; }
-  .ansBox .lab { color: #666; font-size: 13px; }
-  .ansBox .pick { font-size: 30px; font-weight: 700; line-height: 1.3; }
-  .ansBox .prob { color: #666; font-size: 12px; }
-  .ansIv { text-align: center; font-size: 15px; margin: 2px 0 10px; }
-  .ansBtn { display: block; width: 100%; padding: 10px; border: 0; border-radius: 10px; background: #f59e0b; color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 8px; }
+  th, td { padding: 7px 4px; border-bottom: 1px solid rgba(255,255,255,.07); text-align: center; }
+  th { color: #94a3b8; font-weight: 500; }
+  td { color: #dbe2ef; }
+  .win { color: #34d399; font-weight: 700; }
+  .lose { color: #f87171; }
+  .note { font-size: 12px; color: #7d8aa0; line-height: 1.7; }
+  .ansGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .ansBox { border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 12px 10px; text-align: center; background: linear-gradient(180deg, #1b2338, #151b2c); }
+  .ansBox .lab { color: #94a3b8; font-size: 13px; }
+  .ansBox .pick { font-size: 32px; font-weight: 800; line-height: 1.35; color: #fbbf24; }
+  .ansBox .prob { color: #94a3b8; font-size: 12px; }
+  .ansIv { text-align: center; font-size: 15px; margin: 2px 0 12px; color: #cbd5e1; }
+  .ansIv b { color: #fbbf24; }
+  .ansBtn { display: block; width: 100%; padding: 11px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #f59e0b, #f97316); color: #231a06; font-size: 15px; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
   .covGrid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; }
-  .covCell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 700; color: #111; }
+  .covCell { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 15px; font-weight: 700; color: #0f172a; }
   .covCell.hit { background: #34d399; }
   .covCell.miss { background: #f87171; }
-  #err { color: #dc2626; font-size: 13px; }
+  #err { color: #f87171; font-size: 13px; }
+  .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #34d399; animation: pulse 1.8s infinite; flex: none; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,.45); } 70% { box-shadow: 0 0 0 7px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
 </style>
 </head>
 <body>
@@ -53,7 +59,7 @@
   <div id="err"></div>
 
   <div class="card">
-    <h2>最新开奖</h2>
+    <h2>最新开奖 <span class="live"></span></h2>
     <div id="latest">加载中…</div>
     <div class="muted" id="countdown" style="margin-top:6px"></div>
     <div class="muted" id="updated"></div>
@@ -267,10 +273,10 @@ function render(p, d, r) {
   $('distChart').innerHTML =
     '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;display:block">' + bars +
     '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#f59e0b" stroke-width="2"/>' +
-    '<text x="0" y="' + (H - 4) + '" font-size="11" fill="#666">0</text>' +
-    '<text x="' + (9.5 * bw - 4) + '" y="' + (H - 4) + '" font-size="11" fill="#666">9</text>' +
-    '<text x="' + (18.5 * bw - 6) + '" y="' + (H - 4) + '" font-size="11" fill="#666">18</text>' +
-    '<text x="' + (27.5 * bw - 6) + '" y="' + (H - 4) + '" font-size="11" fill="#666">27</text></svg>' +
+    '<text x="0" y="' + (H - 4) + '" font-size="11" fill="#8b98ad">0</text>' +
+    '<text x="' + (9.5 * bw - 4) + '" y="' + (H - 4) + '" font-size="11" fill="#8b98ad">9</text>' +
+    '<text x="' + (18.5 * bw - 6) + '" y="' + (H - 4) + '" font-size="11" fill="#8b98ad">18</text>' +
+    '<text x="' + (27.5 * bw - 6) + '" y="' + (H - 4) + '" font-size="11" fill="#8b98ad">27</text></svg>' +
     '<p class="note">绿柱为已同步 ' + total + ' 期的实际频率，橙线为理论概率。</p>';
   // 区间覆盖记录：最近 40 期已结算记录，绿=覆盖 红=未覆盖
   const settledRecs = (r.records || []).filter((x) => x.actual !== null).slice(-40);
